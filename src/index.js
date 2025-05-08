@@ -36,7 +36,7 @@ app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
       error: 'Arquivo muito grande',
-      message: 'O tamanho máximo permitido é 100MB'
+      message: 'O tamanho máximo permitido é 2GB'
     });
   }
   

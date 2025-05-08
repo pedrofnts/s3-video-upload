@@ -12,7 +12,7 @@ const videoExtensions = ['.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm'
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit para vídeos
+    fileSize: 2 * 1024 * 1024 * 1024, // 2GB limit para vídeos
   },
   fileFilter: (req, file, cb) => {
     // Aceitar apenas formatos de vídeo - verificar tanto mimetype como extensão
