@@ -50,11 +50,12 @@ const uploadFile = async (req, res) => {
         console.log(`Vídeo comprimido em ${(Date.now() - compressStartTime) / 1000} segundos`);
         console.log(`Tamanho original: ${buffer.length} bytes, Tamanho comprimido: ${compressedVideo.buffer.length} bytes`);
 
-        // Upload do vídeo comprimido para o S3
+        // Upload do vídeo comprimido para o S3 (forçando download para iOS)
         const fileUrl = await s3Service.uploadFile(
           compressedVideo.buffer,
           `compressed-${originalname.split('.')[0]}.mp4`,
-          compressedVideo.mimetype
+          compressedVideo.mimetype,
+          true // forceDownload = true para vídeos
         );
 
         // Extrair áudio MP3 do vídeo
@@ -74,7 +75,8 @@ const uploadFile = async (req, res) => {
           audioUrl = await s3Service.uploadFile(
             extractedAudio.buffer,
             `audio-${originalname.split('.')[0]}.mp3`,
-            extractedAudio.mimetype
+            extractedAudio.mimetype,
+            true // forceDownload = true para áudios também
           );
           
           console.log(`MP3 enviado para S3: ${audioUrl}`);
@@ -103,6 +105,46 @@ const uploadFile = async (req, res) => {
   }
 };
 
+/**
+ * Generate download URL for iOS compatibility
+ */
+const generateDownloadUrl = async (req, res) => {
+  try {
+    const { s3Url, filename } = req.body;
+    
+    if (!s3Url) {
+      return res.status(400).json({ error: 'Missing required field: s3Url' });
+    }
+    
+    if (!filename) {
+      return res.status(400).json({ error: 'Missing required field: filename' });
+    }
+    
+    // Extract S3 key from URL
+    const s3Key = s3Service.extractS3KeyFromUrl(s3Url);
+    if (!s3Key) {
+      return res.status(400).json({ error: 'Invalid S3 URL format' });
+    }
+    
+    // Generate signed download URL (valid for 1 hour)
+    const downloadUrl = await s3Service.generateDownloadUrl(s3Key, filename, 3600);
+    
+    res.status(200).json({
+      success: true,
+      downloadUrl,
+      expiresIn: 3600,
+      filename
+    });
+  } catch (error) {
+    console.error('Error generating download URL:', error);
+    return res.status(500).json({
+      error: 'Failed to generate download URL',
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
-  uploadFile
+  uploadFile,
+  generateDownloadUrl
 }; 

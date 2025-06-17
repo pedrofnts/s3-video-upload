@@ -38,4 +38,7 @@ const upload = multer({
 // POST route for file upload
 router.post('/upload', upload.single('arquivo'), uploadController.uploadFile);
 
+// POST route for generating iOS-compatible download URLs
+router.post('/generate-download-url', uploadController.generateDownloadUrl);
+
 module.exports = router; 
