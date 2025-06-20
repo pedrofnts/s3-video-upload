@@ -12,12 +12,12 @@ AWS.config.update({
 const s3 = new AWS.S3();
 
 /**
- * Upload file to S3
+ * Upload file to S3 and return both download and view URLs
  * @param {Buffer} fileBuffer - The file buffer
  * @param {String} fileName - The name of the file
  * @param {String} mimeType - The mime type of the file
  * @param {Boolean} forceDownload - Whether to force download instead of inline display
- * @returns {Promise<String>} - The URL of the uploaded file
+ * @returns {Promise<Object>} - Object containing both URLs
  */
 const uploadFile = async (fileBuffer, fileName, mimeType, forceDownload = false) => {
   // Verificar se estamos em ambiente de desenvolvimento
@@ -30,14 +30,19 @@ const uploadFile = async (fileBuffer, fileName, mimeType, forceDownload = false)
     // Simular um atraso para o upload
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Retornar um URL simulado
-    return `https://example-bucket.s3.amazonaws.com/uploads/dev-${Date.now()}-${fileName}`;
+    // Retornar URLs simulados
+    const baseUrl = `https://example-bucket.s3.amazonaws.com/uploads/dev-${Date.now()}-${fileName}`;
+    return {
+      downloadUrl: baseUrl + '?download=true',
+      viewUrl: baseUrl
+    };
   }
   
   // Em produção, fazer o upload real
+  const key = `uploads/${Date.now()}-${fileName}`;
   const params = {
     Bucket: config.aws.bucketName,
-    Key: `uploads/${Date.now()}-${fileName}`,
+    Key: key,
     Body: fileBuffer,
     ContentType: mimeType
   };
@@ -58,15 +63,29 @@ const uploadFile = async (fileBuffer, fileName, mimeType, forceDownload = false)
       console.log(`Tentativa ${retries + 1} de upload para S3: ${fileName}`);
       const uploadResult = await s3.upload(params).promise();
       console.log(`Upload para S3 bem-sucedido: ${uploadResult.Location}`);
-      return uploadResult.Location; // Return the URL of the uploaded file
+      
+      // Gerar URL de visualização (sem Content-Disposition)
+      const viewUrl = uploadResult.Location;
+      
+      // Gerar URL de download (com Content-Disposition)
+      const downloadUrl = await generateDownloadUrl(key, fileName, 3600 * 24 * 7); // 7 dias
+      
+      return {
+        downloadUrl,
+        viewUrl
+      };
     } catch (error) {
       retries++;
       console.error(`Erro na tentativa ${retries} de upload para S3:`, error);
       
       if (retries >= maxRetries) {
         console.error(`Todas as ${maxRetries} tentativas de upload falharam.`);
-        // Em vez de lançar erro, retornar uma URL falsa para evitar falha completa
-        return `https://error-upload.s3.amazonaws.com/error-${Date.now()}-${fileName}`;
+        // Em vez de lançar erro, retornar URLs falsos para evitar falha completa
+        const errorUrl = `https://error-upload.s3.amazonaws.com/error-${Date.now()}-${fileName}`;
+        return {
+          downloadUrl: errorUrl + '?download=true',
+          viewUrl: errorUrl
+        };
       }
       
       // Esperar antes de tentar novamente (backoff exponencial)
@@ -103,6 +122,29 @@ const generateDownloadUrl = async (s3Key, originalFileName, expiresIn = 3600) =>
 };
 
 /**
+ * Generate a signed view URL (without Content-Disposition)
+ * @param {String} s3Key - The S3 key of the file
+ * @param {Number} expiresIn - URL expiration time in seconds (default: 1 hour)
+ * @returns {Promise<String>} - The signed URL for viewing
+ */
+const generateViewUrl = async (s3Key, expiresIn = 3600) => {
+  try {
+    const params = {
+      Bucket: config.aws.bucketName,
+      Key: s3Key,
+      Expires: expiresIn
+    };
+
+    const viewUrl = await s3.getSignedUrl('getObject', params);
+    console.log(`URL de visualização gerada: ${viewUrl}`);
+    return viewUrl;
+  } catch (error) {
+    console.error('Erro ao gerar URL de visualização:', error);
+    throw error;
+  }
+};
+
+/**
  * Extract S3 key from a full S3 URL
  * @param {String} s3Url - The full S3 URL
  * @returns {String} - The S3 key
@@ -121,5 +163,6 @@ const extractS3KeyFromUrl = (s3Url) => {
 module.exports = {
   uploadFile,
   generateDownloadUrl,
+  generateViewUrl,
   extractS3KeyFromUrl
 }; 

@@ -3,12 +3,15 @@ const config = require('../config/config');
 
 /**
  * Notify external API about the uploaded file
- * @param {String} fileUrl - The URL of the uploaded file
- * @param {String} idTrabalho - The work ID associated with the file
- * @param {String} audioUrl - The URL of the extracted MP3 audio file (optional)
+ * @param {Object} params - The notification parameters
+ * @param {String} params.videoDownloadUrl - The download URL of the uploaded video
+ * @param {String} params.videoViewUrl - The view URL of the uploaded video
+ * @param {String} params.audioDownloadUrl - The download URL of the extracted MP3 audio file (optional)
+ * @param {String} params.audioViewUrl - The view URL of the extracted MP3 audio file (optional)
+ * @param {String} params.id_trabalho - The work ID associated with the file
  * @returns {Promise<Object>} - The response from the notification endpoint or error info
  */
-const notifyFileUploaded = async (fileUrl, idTrabalho, audioUrl = null) => {
+const notifyFileUploaded = async ({ videoDownloadUrl, videoViewUrl, audioDownloadUrl, audioViewUrl, id_trabalho }) => {
   // Verificar se o endpoint está configurado
   if (!config.notification.endpoint) {
     console.log('Endpoint de notificação não configurado. Pulando notificação.');
@@ -16,13 +19,16 @@ const notifyFileUploaded = async (fileUrl, idTrabalho, audioUrl = null) => {
   }
   
   // Cria o payload usando os nomes de campos configurados
-  const payload = {};
-  payload[config.notification.fileUrlField] = fileUrl;
-  payload[config.notification.idTrabalhoField] = idTrabalho;
+  const payload = {
+    [config.notification.fileUrlField]: videoDownloadUrl,
+    [config.notification.idTrabalhoField]: id_trabalho,
+    link_video_editado_view: videoViewUrl
+  };
   
-  // Adiciona a URL do áudio se disponível
-  if (audioUrl) {
-    payload['audioUrl'] = audioUrl;
+  // Adiciona as URLs do áudio se disponíveis
+  if (audioDownloadUrl) {
+    payload.audioDownloadUrl = audioDownloadUrl;
+    payload.audioViewUrl = audioViewUrl;
   }
   
   console.log('Payload da notificação:', payload);

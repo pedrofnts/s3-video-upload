@@ -51,7 +51,7 @@ const uploadFile = async (req, res) => {
         console.log(`Tamanho original: ${buffer.length} bytes, Tamanho comprimido: ${compressedVideo.buffer.length} bytes`);
 
         // Upload do vídeo comprimido para o S3 (forçando download para iOS)
-        const fileUrl = await s3Service.uploadFile(
+        const videoUrls = await s3Service.uploadFile(
           compressedVideo.buffer,
           `compressed-${originalname.split('.')[0]}.mp4`,
           compressedVideo.mimetype,
@@ -64,33 +64,45 @@ const uploadFile = async (req, res) => {
         
         const extractedAudio = await videoService.extractAudioMP3(buffer, originalname);
         
-        // Variável para armazenar a URL do áudio
-        let audioUrl = null;
+        // Variáveis para armazenar as URLs do áudio
+        let audioDownloadUrl = null;
+        let audioViewUrl = null;
         
         // Fazer upload do MP3 extraído para o S3 (se a extração foi bem-sucedida)
         if (extractedAudio) {
           console.log(`Áudio MP3 extraído em ${(Date.now() - extractStartTime) / 1000} segundos`);
           console.log(`Tamanho do MP3: ${extractedAudio.buffer.length} bytes`);
           
-          audioUrl = await s3Service.uploadFile(
+          const audioUrls = await s3Service.uploadFile(
             extractedAudio.buffer,
             `audio-${originalname.split('.')[0]}.mp3`,
             extractedAudio.mimetype,
             true // forceDownload = true para áudios também
           );
           
-          console.log(`MP3 enviado para S3: ${audioUrl}`);
+          audioDownloadUrl = audioUrls.downloadUrl;
+          audioViewUrl = audioUrls.viewUrl;
+          
+          console.log(`MP3 enviado para S3: ${audioUrls.downloadUrl}`);
         } else {
           console.log('Não foi possível extrair o áudio MP3 do vídeo.');
         }
 
-        // Notify external API (incluindo a URL do áudio se disponível)
-        await notificationService.notifyFileUploaded(fileUrl, id_trabalho, audioUrl);
+        // Notify external API (incluindo todas as URLs)
+        await notificationService.notifyFileUploaded({
+          videoDownloadUrl: videoUrls.downloadUrl,
+          videoViewUrl: videoUrls.viewUrl,
+          audioDownloadUrl,
+          audioViewUrl,
+          id_trabalho
+        });
 
         console.log(`Processamento completo para id_trabalho: ${id_trabalho}`);
-        console.log(`URL do vídeo: ${fileUrl}`);
-        if (audioUrl) {
-          console.log(`URL do MP3: ${audioUrl}`);
+        console.log(`URL de download do vídeo: ${videoUrls.downloadUrl}`);
+        console.log(`URL de visualização do vídeo: ${videoUrls.viewUrl}`);
+        if (audioDownloadUrl) {
+          console.log(`URL de download do MP3: ${audioDownloadUrl}`);
+          console.log(`URL de visualização do MP3: ${audioViewUrl}`);
         }
       } catch (error) {
         console.error('Error in background processing:', error);
@@ -126,19 +138,23 @@ const generateDownloadUrl = async (req, res) => {
       return res.status(400).json({ error: 'Invalid S3 URL format' });
     }
     
-    // Generate signed download URL (valid for 1 hour)
-    const downloadUrl = await s3Service.generateDownloadUrl(s3Key, filename, 3600);
+    // Generate both download and view URLs
+    const [downloadUrl, viewUrl] = await Promise.all([
+      s3Service.generateDownloadUrl(s3Key, filename, 3600),
+      s3Service.generateViewUrl(s3Key, 3600)
+    ]);
     
     res.status(200).json({
       success: true,
       downloadUrl,
+      viewUrl,
       expiresIn: 3600,
       filename
     });
   } catch (error) {
-    console.error('Error generating download URL:', error);
+    console.error('Error generating URLs:', error);
     return res.status(500).json({
-      error: 'Failed to generate download URL',
+      error: 'Failed to generate URLs',
       message: error.message
     });
   }
