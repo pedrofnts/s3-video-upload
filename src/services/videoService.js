@@ -99,16 +99,9 @@ const compressVideo = async (videoBuffer, fileName) => {
     // Ler o arquivo comprimido como buffer
     const compressedBuffer = await fs.readFile(outputPath);
     console.log(`Tamanho do arquivo comprimido: ${compressedBuffer.length} bytes`);
+    console.log(`Tamanho do arquivo original: ${videoBuffer.length} bytes`);
     
-    // Se o arquivo comprimido for maior que o original, usar o original
-    if (compressedBuffer.length > videoBuffer.length) {
-      console.log('Arquivo comprimido é maior que o original. Usando o arquivo original.');
-      return {
-        buffer: videoBuffer,
-        mimetype: 'video/mp4'
-      };
-    }
-    
+    // Sempre usar o arquivo comprimido (com scale e configurações aplicadas)
     return {
       buffer: compressedBuffer,
       mimetype: 'video/mp4'
