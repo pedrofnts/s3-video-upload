@@ -58,9 +58,7 @@ const compressVideo = async (videoBuffer, fileName) => {
           '-b:v', '5000k',      // Bitrate de vídeo
           '-vf', 'scale=1080:1920', // Scale para 1080x1920 (vertical)
           '-c:a', 'aac',        // Codec de áudio AAC
-          '-b:a', '128k',       // Bitrate de áudio
-          '-movflags', '+faststart', // Otimizar para streaming
-          '-f', 'mp4'           // Force output format
+          '-b:a', '128k'        // Bitrate de áudio
         ])
         .output(outputPath)
         .on('start', (commandLine) => {
@@ -169,9 +167,8 @@ const extractAudioMP3 = async (videoBuffer, fileName) => {
       let ffmpegProcess = ffmpeg(inputPath)
         .outputOptions([
           '-vn',              // Remover a parte de vídeo
-          '-c:a libmp3lame',  // Codec MP3
-          '-q:a 2',           // Qualidade de áudio (2 é alta qualidade)
-          '-f mp3'            // Force output format
+          '-acodec', 'libmp3lame',  // Codec MP3
+          '-b:a', '128k'      // Bitrate de áudio
         ])
         .output(outputPath)
         .on('start', (commandLine) => {
