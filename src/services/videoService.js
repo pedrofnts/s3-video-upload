@@ -54,13 +54,13 @@ const compressVideo = async (videoBuffer, fileName) => {
     await new Promise((resolve, reject) => {
       let ffmpegProcess = ffmpeg(inputPath)
         .outputOptions([
-          '-c:v libx264',     // Codec de vídeo H.264
-          '-crf 28',          // Controle de qualidade (28 é um bom equilíbrio entre qualidade e tamanho)
-          '-preset fast',     // Velocidade de codificação
-          '-c:a aac',         // Codec de áudio AAC
-          '-b:a 128k',        // Bitrate de áudio
-          '-movflags +faststart', // Otimizar para streaming
-          '-f mp4'            // Force output format
+          '-c:v', 'libx264',    // Codec de vídeo H.264
+          '-b:v', '5000k',      // Bitrate de vídeo
+          '-vf', 'scale=1080:1920', // Scale para 1080x1920 (vertical)
+          '-c:a', 'aac',        // Codec de áudio AAC
+          '-b:a', '128k',       // Bitrate de áudio
+          '-movflags', '+faststart', // Otimizar para streaming
+          '-f', 'mp4'           // Force output format
         ])
         .output(outputPath)
         .on('start', (commandLine) => {
