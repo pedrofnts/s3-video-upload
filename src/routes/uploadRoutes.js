@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const uploadController = require('../controllers/uploadController');
+const storyController = require('../controllers/storyController');
 
 const router = express.Router();
 
@@ -40,5 +41,8 @@ router.post('/upload', upload.single('arquivo'), uploadController.uploadFile);
 
 // POST route for generating iOS-compatible download URLs
 router.post('/generate-download-url', uploadController.generateDownloadUrl);
+
+// POST route for processing Instagram Stories
+router.post('/process-story', storyController.processStory);
 
 module.exports = router; 

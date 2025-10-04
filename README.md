@@ -90,6 +90,62 @@ curl -X POST \
 }
 ```
 
+### Process Video for Instagram Stories
+
+Processa um vídeo e divide em múltiplos segmentos adequados para Instagram Stories (3-60s cada, vertical 9:16, H.264/AAC, <100MB).
+
+- **URL**: `/api/process-story`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+- **Parameters**:
+  - `videoUrl`: URL do vídeo no S3 para processar (string)
+  - `profileId`: ID do perfil do Instagram (string)
+
+#### Example Request
+
+Using curl:
+```bash
+curl -X POST \
+  http://localhost:3000/api/process-story \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "videoUrl": "https://your-bucket.s3.amazonaws.com/uploads/video.mp4",
+    "profileId": "123456"
+  }'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Processamento de story iniciado",
+  "profileId": "123456"
+}
+```
+
+#### Background Processing
+
+O processamento ocorre em background:
+1. Baixa o vídeo da URL fornecida
+2. Divide em segmentos de até 60 segundos (mínimo 3 segundos)
+3. Processa cada segmento para garantir:
+   - Formato: H.264/AAC MP4
+   - Aspect ratio: 9:16 (vertical)
+   - Tamanho: <100MB por segmento
+4. Faz upload de todos os segmentos para S3
+5. Chama webhook `https://api.drreels.com.br/webhook/postStory` com:
+```json
+{
+  "profileId": "123456",
+  "videos": [
+    "https://url-do-segmento-1.mp4",
+    "https://url-do-segmento-2.mp4",
+    "https://url-do-segmento-3.mp4"
+  ]
+}
+```
+
 ### Generate iOS Download URL
 
 Para resolver problemas de download no iOS/Safari, use este endpoint para gerar URLs temporárias que forçam o download:
