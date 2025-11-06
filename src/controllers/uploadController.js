@@ -106,6 +106,22 @@ const uploadFile = async (req, res) => {
         }
       } catch (error) {
         console.error('Error in background processing:', error);
+
+        // Notify error webhook
+        try {
+          await notificationService.notifyError({
+            processType: 'upload',
+            errorMessage: error.message,
+            errorStack: error.stack,
+            metadata: {
+              id_trabalho,
+              originalFilename: originalname,
+              mimetype
+            }
+          });
+        } catch (notifyError) {
+          console.error('Failed to send error notification:', notifyError.message);
+        }
       }
     })();
   } catch (error) {

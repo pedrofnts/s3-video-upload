@@ -1,5 +1,6 @@
 const storyService = require('../services/storyService');
 const s3Service = require('../services/s3Service');
+const notificationService = require('../services/notificationService');
 const axios = require('axios');
 
 /**
@@ -89,7 +90,22 @@ const processStory = async (req, res) => {
       } catch (error) {
         console.error('Erro no processamento de story em background:', error);
 
-        // Try to notify webhook about the error
+        // Notify error webhook (centralized error notification)
+        try {
+          await notificationService.notifyError({
+            processType: 'story',
+            errorMessage: error.message,
+            errorStack: error.stack,
+            metadata: {
+              profileId,
+              videoUrl
+            }
+          });
+        } catch (notifyError) {
+          console.error('Failed to send error notification:', notifyError.message);
+        }
+
+        // Try to notify story webhook about the error (existing behavior)
         try {
           const webhookUrl = 'https://api.drreels.com.br/webhook/postStory';
           await axios.post(webhookUrl, {

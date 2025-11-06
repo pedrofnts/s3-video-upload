@@ -76,6 +76,76 @@ const notifyFileUploaded = async ({ videoDownloadUrl, videoViewUrl, audioDownloa
   }
 };
 
+/**
+ * Notify error webhook about processing failure
+ * @param {Object} params - The error parameters
+ * @param {String} params.processType - Type of process that failed ('upload' or 'story')
+ * @param {String} params.errorMessage - Error message
+ * @param {String} params.errorStack - Error stack trace (optional)
+ * @param {Object} params.metadata - Additional metadata (id_trabalho, profileId, etc.)
+ * @returns {Promise<Object>} - The response from the error webhook or error info
+ */
+const notifyError = async ({ processType, errorMessage, errorStack, metadata }) => {
+  // Verificar se o webhook de erro está configurado
+  if (!config.notification.errorWebhook) {
+    console.log('Webhook de erro não configurado. Pulando notificação de erro.');
+    return { status: 'skipped', message: 'Error webhook not configured' };
+  }
+
+  const payload = {
+    processType,
+    errorMessage,
+    errorStack,
+    metadata,
+    timestamp: new Date().toISOString()
+  };
+
+  console.log('Payload da notificação de erro:', payload);
+  console.log(`Enviando notificação de erro para: ${config.notification.errorWebhook}`);
+
+  let retries = 0;
+  const maxRetries = 3;
+
+  while (retries < maxRetries) {
+    try {
+      const response = await axios.post(config.notification.errorWebhook, payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 segundos de timeout
+      });
+
+      console.log('Resposta da notificação de erro:', response.data);
+      return response.data;
+    } catch (error) {
+      retries++;
+      console.error(`Erro na tentativa ${retries} de notificação de erro:`, error.message);
+
+      if (error.response) {
+        console.error('Detalhes do erro:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+      }
+
+      if (retries >= maxRetries) {
+        console.error(`Todas as ${maxRetries} tentativas de notificação de erro falharam.`);
+        return {
+          status: 'error',
+          message: 'Failed to send error notification after multiple attempts',
+          error: error.message
+        };
+      }
+
+      // Esperar antes de tentar novamente (backoff exponencial)
+      const waitTime = Math.pow(2, retries) * 1000; // 2s, 4s, 8s...
+      console.log(`Aguardando ${waitTime}ms antes da próxima tentativa de notificação de erro...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+};
+
 module.exports = {
-  notifyFileUploaded
+  notifyFileUploaded,
+  notifyError
 }; 

@@ -13,6 +13,7 @@ module.exports = {
   notification: {
     endpoint: process.env.NOTIFICATION_ENDPOINT,
     fileUrlField: process.env.NOTIFICATION_FILE_URL_FIELD || 'fileUrl',
-    idTrabalhoField: process.env.NOTIFICATION_ID_TRABALHO_FIELD || 'idTrabalho'
+    idTrabalhoField: process.env.NOTIFICATION_ID_TRABALHO_FIELD || 'idTrabalho',
+    errorWebhook: process.env.ERROR_WEBHOOK_URL
   }
 }; 
