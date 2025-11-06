@@ -108,11 +108,8 @@ const compressVideo = async (videoBuffer, fileName) => {
     };
   } catch (error) {
     console.error('Erro ao comprimir vídeo:', error);
-    // Em caso de erro, retorna o vídeo original em vez de falhar completamente
-    return {
-      buffer: videoBuffer,
-      mimetype: 'video/mp4'
-    };
+    // Propagar o erro para que seja tratado no controller
+    throw error;
   } finally {
     // Limpar os arquivos temporários, independente de sucesso ou falha
     if (tempDir) {
