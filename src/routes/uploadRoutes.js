@@ -14,6 +14,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 2 * 1024 * 1024 * 1024, // 2GB limit para vídeos
+    fieldSize: 10 * 1024 * 1024, // 10MB limit para campos de texto (ex: base64 encoding, metadata)
   },
   fileFilter: (req, file, cb) => {
     // Aceitar apenas formatos de vídeo - verificar tanto mimetype como extensão

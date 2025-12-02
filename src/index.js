@@ -31,15 +31,29 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  
-  // Handle multer file size errors
+
+  // Handle multer errors
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
       error: 'Arquivo muito grande',
       message: 'O tamanho máximo permitido é 2GB'
     });
   }
-  
+
+  if (err.code === 'LIMIT_FIELD_VALUE') {
+    return res.status(413).json({
+      error: 'Campo muito grande',
+      message: `O campo "${err.field}" excedeu o tamanho máximo permitido. Verifique se está enviando o arquivo corretamente como multipart/form-data.`
+    });
+  }
+
+  if (err.name === 'MulterError') {
+    return res.status(400).json({
+      error: 'Erro no upload',
+      message: err.message
+    });
+  }
+
   // Prevented crash on unhandled errors
   res.status(500).json({
     error: 'Erro interno do servidor',
