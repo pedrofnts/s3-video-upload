@@ -11,13 +11,21 @@ const processStory = async (req, res) => {
   try {
     const { videoUrl, profileId } = req.body;
 
-    // Validate request
+    // SEMPRE retorna 200, mesmo com validações falhando
     if (!videoUrl) {
-      return res.status(400).json({ error: 'Missing required field: videoUrl' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Campo videoUrl não informado'
+      });
     }
 
     if (!profileId) {
-      return res.status(400).json({ error: 'Missing required field: profileId' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Campo profileId não informado'
+      });
     }
 
     console.log(`Iniciando processamento de story para profileId: ${profileId}`);
@@ -126,9 +134,11 @@ const processStory = async (req, res) => {
 
   } catch (error) {
     console.error('Erro no controller de story:', error);
-    return res.status(500).json({
-      error: 'Falha ao processar story',
-      message: error.message
+    // SEMPRE retorna 200
+    return res.status(200).json({
+      success: true,
+      message: 'Requisição recebida.',
+      warning: error.message
     });
   }
 };

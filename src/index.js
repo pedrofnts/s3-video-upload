@@ -23,44 +23,24 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// 404 handler
+// 404 handler - SEMPRE retorna 200
 app.use((req, res) => {
-  res.status(404).json({ error: 'Not found', path: req.originalUrl });
+  res.status(200).json({
+    success: true,
+    message: 'Requisição recebida.',
+    warning: `Rota não encontrada: ${req.originalUrl}`
+  });
 });
 
-// Global error handler
+// Global error handler - SEMPRE retorna 200
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
 
-  // Handle multer errors
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({
-      error: 'Arquivo muito grande',
-      message: 'O tamanho máximo permitido é 2GB'
-    });
-  }
-
-  if (err.code === 'LIMIT_FIELD_VALUE') {
-    // Retorna 200 porque o processamento funciona mesmo com esse erro
-    console.log(`Warning: Campo "${err.field}" excedeu fieldSize limit, mas continuando processamento...`);
-    return res.status(200).json({
-      success: true,
-      message: 'Arquivo recebido. Processamento iniciado.',
-      warning: 'Campo de texto grande detectado'
-    });
-  }
-
-  if (err.name === 'MulterError') {
-    return res.status(400).json({
-      error: 'Erro no upload',
-      message: err.message
-    });
-  }
-
-  // Prevented crash on unhandled errors
-  res.status(500).json({
-    error: 'Erro interno do servidor',
-    message: process.env.NODE_ENV === 'production' ? 'Erro interno do servidor' : err.message
+  // SEMPRE retorna 200, independente do erro
+  return res.status(200).json({
+    success: true,
+    message: 'Requisição recebida. Processamento iniciado.',
+    warning: err.message || 'Erro durante processamento'
   });
 });
 

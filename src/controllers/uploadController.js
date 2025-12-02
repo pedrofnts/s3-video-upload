@@ -7,13 +7,21 @@ const videoService = require('../services/videoService');
  */
 const uploadFile = async (req, res) => {
   try {
-    // Validate request
+    // SEMPRE retorna 200, mesmo com validações falhando
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded. Field name must be "arquivo".' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Nenhum arquivo enviado'
+      });
     }
-    
+
     if (!req.body.id_trabalho) {
-      return res.status(400).json({ error: 'Missing required field: id_trabalho' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Campo id_trabalho não informado'
+      });
     }
 
     const { buffer, originalname, mimetype } = req.file;
@@ -21,7 +29,11 @@ const uploadFile = async (req, res) => {
 
     // Verificar se o arquivo é realmente um vídeo
     if (!mimetype.startsWith('video/')) {
-      return res.status(400).json({ error: 'Apenas arquivos de vídeo são permitidos' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Arquivo não é um vídeo'
+      });
     }
 
     // Send immediate 200 response to client
@@ -126,9 +138,11 @@ const uploadFile = async (req, res) => {
     })();
   } catch (error) {
     console.error('Error in upload controller:', error);
-    return res.status(500).json({
-      error: 'File upload failed',
-      message: error.message
+    // SEMPRE retorna 200
+    return res.status(200).json({
+      success: true,
+      message: 'Requisição recebida.',
+      warning: error.message
     });
   }
 };
@@ -139,27 +153,39 @@ const uploadFile = async (req, res) => {
 const generateDownloadUrl = async (req, res) => {
   try {
     const { s3Url, filename } = req.body;
-    
+
     if (!s3Url) {
-      return res.status(400).json({ error: 'Missing required field: s3Url' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Campo s3Url não informado'
+      });
     }
-    
+
     if (!filename) {
-      return res.status(400).json({ error: 'Missing required field: filename' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Campo filename não informado'
+      });
     }
-    
+
     // Extract S3 key from URL
     const s3Key = s3Service.extractS3KeyFromUrl(s3Url);
     if (!s3Key) {
-      return res.status(400).json({ error: 'Invalid S3 URL format' });
+      return res.status(200).json({
+        success: true,
+        message: 'Requisição recebida.',
+        warning: 'Formato de URL S3 inválido'
+      });
     }
-    
+
     // Generate both download and view URLs
     const [downloadUrl, viewUrl] = await Promise.all([
       s3Service.generateDownloadUrl(s3Key, filename, 3600),
       s3Service.generateViewUrl(s3Key, 3600)
     ]);
-    
+
     res.status(200).json({
       success: true,
       downloadUrl,
@@ -169,9 +195,11 @@ const generateDownloadUrl = async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating URLs:', error);
-    return res.status(500).json({
-      error: 'Failed to generate URLs',
-      message: error.message
+    // SEMPRE retorna 200
+    return res.status(200).json({
+      success: true,
+      message: 'Requisição recebida.',
+      warning: error.message
     });
   }
 };
